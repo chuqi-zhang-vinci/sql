@@ -1,0 +1,19 @@
+CREATE OR REPLACE FUNCTION authentifier_entreprise(_identifiant TEXT, _mot_de_passe TEXT)
+RETURNS INT AS $$
+DECLARE
+    _id_entreprise INT;
+BEGIN
+    IF(SELECT e.mot_de_passe
+        FROM projet.entreprises e
+        WHERE e.identifiant = _identifiant) = _mot_de_passe THEN
+            _id_entreprise = (
+                SELECT e2.id_entreprise
+                FROM projet.entreprises e2
+                WHERE e2.identifiant = _identifiant
+            );
+        RETURN _id_entreprise;
+    ELSE
+        RETURN -1;
+    END IF;
+END;
+$$ language plpgsql;
