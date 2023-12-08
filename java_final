@@ -1,0 +1,273 @@
+import java.sql.*;
+import java.util.Scanner;
+
+public class ApplicationEntreprises {
+    public void run() {
+        //connection au serveur SQL
+        try {
+            Class.forName("org.postgresql.Driver");
+        } catch (ClassNotFoundException e) {
+            System.out.println("Driver PostgreSQL manquant !");
+            System.exit(1);
+        }
+
+        System.out.println("trying to connect to server...");
+        String url = "jdbc:postgresql://172.24.2.6:5432/dbchuqizhang";
+        Connection conn = null;
+
+        try {
+            conn = DriverManager.getConnection(url, "chuqizhang", "8NY0TKXQ4");
+        } catch (SQLException e) {
+            System.out.println("Impossible de joindre le serveur !");
+            e.printStackTrace();
+            System.exit(1);
+        }
+
+
+
+        int entrepriseEnCours = -1;
+
+         //authentifier une entreprise
+         System.out.println("Authentifiez-vous");
+         Scanner scannerIdentifiant = new Scanner(System.in);
+         Scanner scannerMotDePasse = new Scanner(System.in);
+
+         System.out.println("identifiant : ");
+         String identifiant = scannerIdentifiant.nextLine();
+         System.out.println("mot de passe : ");
+         String motDePasse = scannerMotDePasse.nextLine();
+
+
+        boolean is_entreprise = false;
+        int _id_entreprise = -1;
+        try {
+            System.out.println("authentification...");
+
+            String functionCall = "SELECT e.mot_de_passe, e.id_entreprise FROM projet.entreprises e WHERE e.identifiant = ?";
+            PreparedStatement stmt = conn.prepareStatement(functionCall);
+            stmt.setString(1, identifiant);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                is_entreprise = BCrypt.checkpw(motDePasse, rs.getString("mot_de_passe"));
+                if(is_entreprise)
+                    _id_entreprise = rs.getInt("id_entreprise");
+            }
+            entrepriseEnCours = _id_entreprise;
+        } catch (SQLException e) {
+            System.out.println("Erreur lors d'authentification ! ");
+            e.printStackTrace();
+        }
+
+        System.out.println("l'id de l'entreprise en cours : "+entrepriseEnCours);
+
+
+        /**
+         //appel de la fonction authentifier_entreprise() en SQL
+         try {
+         System.out.println("authentification entreprise : ");
+         String functionCall = "SELECT authentifier_entreprise(?, ?)";
+         PreparedStatement stmt = conn.prepareStatement(functionCall);
+
+
+         stmt.setString(1, identifiant);
+         stmt.setString(2, motDePasse);
+         ResultSet rs = stmt.executeQuery();
+
+         if (rs.next()) {
+         entrepriseEnCours = rs.getInt(1);
+         }
+         System.out.println("l'id de l'entreprise en cours : "+entrepriseEnCours);
+         } catch(SQLException e) {
+         System.out.println("Erreur lors d'exécution de la fonction !");
+         e.printStackTrace();
+         System.exit(1);
+         }*/
+
+
+
+        //Menu de fonctionnalités
+        if(entrepriseEnCours != -1) {
+            Scanner scanner = new Scanner(System.in);
+            System.out.println();
+            System.out.println();
+            System.out.println("Veuillez choisir une option :");
+            System.out.println("1. Encoder une offre de stage");
+            System.out.println("2. Voir les mot-clés disponibles");
+            System.out.println("3. Ajouter un mot-clé à une de ses offres de stage");
+            System.out.println("4. Voir ses offres de stages");
+            System.out.println("5. Voir les candidatures");
+            System.out.println("6. Sélectionner un étudiant pour une de ses offres de stage");
+            System.out.println("7. Annuler une offre de stage en donnant son code");
+            System.out.println("0. Quitter");
+
+            int option;
+            do {
+                option = scanner.nextInt();
+                switch (option) {
+                    case 1:
+                        //appel de la fonction encoder_une_offre_stage
+                        System.out.println("executing encoder_une_offre_stage()...");
+                        try {
+                            Scanner scannerDescription = new Scanner(System.in);
+                            Scanner scannerSemestre = new Scanner(System.in);
+                            System.out.println("Veuillez entrer une description : ");
+                            String description = scannerDescription.nextLine();
+                            System.out.println("Veuillez entrer la semestre : ");
+                            String semestre = scannerSemestre.nextLine();
+
+                            String functionCall = "SELECT encoder_une_offre_stage(?, ?, ?)";
+                            PreparedStatement stmt = conn.prepareStatement(functionCall);
+                            stmt.setInt(1, entrepriseEnCours);
+                            stmt.setString(2, description);
+                            stmt.setString(3, semestre);
+                            stmt.execute();
+                            System.out.println("function encoder_une_offre_stage() executed sucessfully!");
+                        } catch (SQLException e) {
+                            System.out.println("Erreur lors de l’insertion !");
+                            e.printStackTrace();
+                        }
+                        break;
+                    case 2:
+                        System.out.println("consultation du view ...");
+                        try {
+                            System.out.println("reading projet.offres_stages_view : ");
+                            Statement st2 = null;
+                            ResultSet rs2 = null;
+                            st2 = conn.createStatement();
+                            rs2 = st2.executeQuery("SELECT * FROM projet.mots_cle_disponible");
+                            System.out.println("les mots-clés disponibles pour décrire une offre de stage sont : ");
+                            while (rs2.next()) {
+                                System.out.print(rs2.getString("intitule"));
+                                System.out.println();
+                            }
+                        } catch (SQLException e) {
+                            System.out.println("Erreur lors de l’insertion !");
+                            e.printStackTrace();
+                        }
+                        break;
+                    case 3:
+                        System.out.println("executing ajouter_mot_cle_pour_une_offre()...");
+                        try {
+                            Scanner scannerCode = new Scanner(System.in);
+                            Scanner scannerMotCle = new Scanner(System.in);
+                            System.out.println("Veuillez entrer un code : ");
+                            String code = scannerCode.nextLine();
+                            System.out.println("Veuillez entrer le mot-clé : ");
+                            String motCle = scannerMotCle.nextLine();
+
+                            String functionCall = "SELECT ajouter_mot_cle_pour_une_offre(?, ?, ?)";
+                            PreparedStatement stmt = conn.prepareStatement(functionCall);
+                            stmt.setInt(1, entrepriseEnCours);
+                            stmt.setString(2, code);
+                            stmt.setString(3, motCle);
+                            boolean res = stmt.execute();
+                            System.out.println("function ajouter_mot_cle_pour_une_offre() executed sucessfully!");
+                        } catch (SQLException e) {
+                            System.out.println("Erreur lors de l’insertion !");
+                            e.printStackTrace();
+                        }
+                        break;
+                    case 4:
+                        System.out.println("consultation du view ...");
+                        try {
+                            System.out.println("reading projet.vue_offres_stages : ");
+                            String query = "SELECT code_offre, description_offre, semestre_offre, etat_offre, nombre_candidatures_en_attente, nom_etudiant_attribue FROM projet.vue_offres_stages WHERE entreprise_offre = ?";
+                            PreparedStatement stmt = conn.prepareStatement(query);
+                            stmt.setInt(1, entrepriseEnCours);
+                            ResultSet rs2 = stmt.executeQuery();
+
+                            System.out.println("Offres de stages disponible : ");
+                            System.out.println("code_offre\tdescription_offre\t semestre_offre\tetat_offre\tnombre_candidatures_en_attente\tnom_etudiant_attribue");
+                            while (rs2.next()) {
+                                System.out.print(rs2.getString("code_offre"));
+                                System.out.print("\t /");
+                                System.out.print(rs2.getString("description_offre"));
+                                System.out.print("\t /");
+                                System.out.print(rs2.getString("semestre_offre"));
+                                System.out.print("\t /");
+                                System.out.print(rs2.getString("etat_offre"));
+                                System.out.print("\t /");
+                                System.out.print(rs2.getInt("nombre_candidatures_en_attente"));
+                                System.out.print("\t /");
+                                System.out.print(rs2.getString("nom_etudiant_attribue"));
+                                System.out.println();
+                            }
+                        } catch (SQLException e) {
+                            System.out.println("Erreur lors de l’insertion !");
+                            e.printStackTrace();
+                        }
+                        break;
+                    case 5:
+                        try {
+                            Scanner scannerCode = new Scanner(System.in);
+                            System.out.println("Veuillez entrer un code : ");
+                            String code = scannerCode.nextLine();
+
+                            System.out.println("executing function voir_candidatures()...");
+                            String functionCall = "SELECT voir_candidatures(?, ?)";
+                            PreparedStatement stmt = conn.prepareStatement(functionCall);
+                            stmt.setInt(1, entrepriseEnCours);
+                            stmt.setString(2, code);
+                            ResultSet rs = stmt.executeQuery();
+                            while (rs.next()) {
+                                String candidatures = rs.getString("voir_candidatures");
+
+                                System.out.println("candidatures: " + candidatures);
+                                System.out.println("-------------------");
+                            }
+
+                            System.out.println("function voir_candidatures() executed sucessfully!");
+                        } catch (SQLException e) {
+                            System.out.println("Erreur lors de l’insertion !");
+                            e.printStackTrace();
+                        }
+                        break;
+                    case 6:
+                        System.out.println("executing selectionner_un_etudiant_pour_une_offre()...");
+                        try {
+                            Scanner scannerCode = new Scanner(System.in);
+                            Scanner scannerMail = new Scanner(System.in);
+                            System.out.println("Veuillez entrer un code : ");
+                            String code = scannerCode.nextLine();
+                            System.out.println("Veuillez entrer l'email de l'étudiant : ");
+                            String email = scannerMail.nextLine();
+
+                            String functionCall = "SELECT selectionner_un_etudiant_pour_une_offre(?, ?, ?)";
+                            PreparedStatement stmt = conn.prepareStatement(functionCall);
+                            stmt.setInt(1, entrepriseEnCours);
+                            stmt.setString(2, code);
+                            stmt.setString(3, email);
+                            stmt.execute();
+                            System.out.println("function selectionner_un_etudiant_pour_une_offre() executed sucessfully!");
+                        } catch (SQLException e) {
+                            System.out.println("Erreur lors de l’insertion !");
+                            e.printStackTrace();
+                        }
+                        break;
+                    case 7:
+                        System.out.println("executing annuler_une_offre()...");
+                        try {
+                            Scanner scannerCode = new Scanner(System.in);
+                            System.out.println("Veuillez entre un code : ");
+                            String code = scannerCode.nextLine();
+
+                            String functionCall = "SELECT annuler_une_offre(?, ?)";
+                            PreparedStatement stmt = conn.prepareStatement(functionCall);
+                            stmt.setInt(1, entrepriseEnCours);
+                            stmt.setString(2, code);
+                            stmt.execute();
+                            System.out.println("function annuler_une_offre() executed sucessfully!");
+                        } catch (SQLException e) {
+                            System.out.println("Erreur lors de l’insertion !");
+                            e.printStackTrace();
+                        }
+                }
+            }while (option != 0) ;
+            System.out.println("Au revoir !");
+
+        }else {
+            System.out.println();
+            System.out.println("VOUS ÊTES UNE FRAUDE !");
+        }
+    }
+}
